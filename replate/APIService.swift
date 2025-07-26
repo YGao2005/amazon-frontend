@@ -24,13 +24,41 @@ struct ScannedIngredient: Codable {
     let name: String
     let quantity: QuantityInfo
     let estimatedExpiration: String?
+    let expirationDate: String?
     let category: String
+    let purchaseDate: String?
+    let location: String?
+    let notes: String?
+    let createdAt: String?
+    let updatedAt: String?
+    let imageName: String?
     
     init(name: String, quantity: QuantityInfo, estimatedExpiration: String?, category: String) {
         self.name = name
         self.quantity = quantity
         self.estimatedExpiration = estimatedExpiration
+        self.expirationDate = nil
         self.category = category
+        self.purchaseDate = nil
+        self.location = nil
+        self.notes = nil
+        self.createdAt = nil
+        self.updatedAt = nil
+        self.imageName = nil
+    }
+    
+    init(name: String, quantity: QuantityInfo, estimatedExpiration: String?, category: String, purchaseDate: String?, location: String?, notes: String?, createdAt: String?, updatedAt: String?, imageName: String?) {
+        self.name = name
+        self.quantity = quantity
+        self.estimatedExpiration = estimatedExpiration
+        self.expirationDate = estimatedExpiration // Use same value for both
+        self.category = category
+        self.purchaseDate = purchaseDate
+        self.location = location
+        self.notes = notes
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.imageName = imageName
     }
 }
 
@@ -42,8 +70,87 @@ struct QuantityInfo: Codable {
 // MARK: - ScannedIngredient Extension
 extension ScannedIngredient {
     func toIngredient() -> Ingredient {
-        let dateFormatter = ISO8601DateFormatter()
-        let expiration = estimatedExpiration.flatMap { dateFormatter.date(from: $0) }
+        // Handle different expiration date formats - prefer expirationDate over estimatedExpiration
+        let expirationDateString = expirationDate ?? estimatedExpiration
+        
+        print("DEBUG: Converting scanned ingredient '\(name)' with expiration: '\(expirationDateString ?? "nil")'")
+        
+        let expiration = expirationDateString.flatMap { dateString -> Date? in
+            print("DEBUG: Trying to parse scanned ingredient expiration date: '\(dateString)'")
+            
+            // First try the exact format your backend returns: "2025-08-02T16:51:01.478264Z"
+            let backendFormatter = DateFormatter()
+            backendFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            backendFormatter.timeZone = TimeZone(abbreviation: "UTC")
+            if let date = backendFormatter.date(from: dateString) {
+                print("DEBUG: Successfully parsed scanned expiration date with backend formatter: \(date)")
+                return date
+            }
+            
+            // Try ISO8601 format with fractional seconds
+            let iso8601Formatter = ISO8601DateFormatter()
+            iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = iso8601Formatter.date(from: dateString) {
+                print("DEBUG: Successfully parsed scanned expiration date with ISO8601 fractional: \(date)")
+                return date
+            }
+            
+            // Try standard ISO8601 format
+            iso8601Formatter.formatOptions = [.withInternetDateTime]
+            if let date = iso8601Formatter.date(from: dateString) {
+                print("DEBUG: Successfully parsed scanned expiration date with ISO8601: \(date)")
+                return date
+            }
+            
+            // Try various DateFormatter formats
+            let dateFormatters: [DateFormatter] = [
+                // Format with microseconds and timezone (your backend format)
+                {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ"
+                    formatter.timeZone = TimeZone(abbreviation: "UTC")
+                    return formatter
+                }(),
+                // Format with microseconds but Z timezone
+                {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+                    formatter.timeZone = TimeZone(abbreviation: "UTC")
+                    return formatter
+                }(),
+                // Format with seconds and Z timezone
+                {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+                    formatter.timeZone = TimeZone(abbreviation: "UTC")
+                    return formatter
+                }(),
+                // Standard ISO format
+                {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+                    formatter.timeZone = TimeZone(abbreviation: "UTC")
+                    return formatter
+                }(),
+                // Simple date format
+                {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd"
+                    formatter.timeZone = TimeZone(abbreviation: "UTC")
+                    return formatter
+                }()
+            ]
+            
+            for formatter in dateFormatters {
+                if let date = formatter.date(from: dateString) {
+                    print("DEBUG: Successfully parsed scanned expiration date with DateFormatter: \(date)")
+                    return date
+                }
+            }
+            
+            print("DEBUG: Failed to parse scanned expiration date with any formatter")
+            return nil
+        }
         
         // Map API category to local category enum
         let mappedCategory = IngredientCategory(rawValue: category) ?? .other
@@ -81,6 +188,12 @@ extension ScannedIngredient {
         }
         
         print("DEBUG: Converting scanned ingredient '\(name)' - category: '\(category)' -> \(mappedCategory), unit: '\(quantity.unit)' -> \(mappedUnit)")
+        
+        if let finalDate = expiration {
+            print("DEBUG: Final expiration date for scanned '\(name)': \(finalDate)")
+        } else {
+            print("DEBUG: No expiration date set for scanned '\(name)'")
+        }
         
         return Ingredient(
             name: name,
@@ -357,13 +470,39 @@ class APIService: ObservableObject {
             
             // Debug: Print the raw response to understand the format
             if let jsonString = String(data: data, encoding: .utf8) {
-                print("DEBUG: Raw API response: \(jsonString)")
+                print("DEBUG: Raw scan API response: \(jsonString)")
             }
             
-            // Decode the response - backend returns array directly matching our model exactly
-            let ingredients = try JSONDecoder().decode([ScannedIngredient].self, from: data)
-            print("DEBUG: Successfully decoded \(ingredients.count) ingredients from API")
-            return ingredients
+            // Try to decode as ScannedIngredient array first
+            do {
+                let ingredients = try JSONDecoder().decode([ScannedIngredient].self, from: data)
+                print("DEBUG: Successfully decoded \(ingredients.count) scanned ingredients from API")
+                return ingredients
+            } catch {
+                print("DEBUG: Failed to decode as [ScannedIngredient]: \(error)")
+                
+                // If that fails, try to decode as full ingredient response (new backend format)
+                do {
+                    let apiIngredients = try JSONDecoder().decode([APIIngredient].self, from: data)
+                    print("DEBUG: Successfully decoded \(apiIngredients.count) full ingredients from scan API")
+                    
+                    // Convert APIIngredients to ScannedIngredients
+                    let scannedIngredients = apiIngredients.map { apiIngredient -> ScannedIngredient in
+                        let quantityInfo = QuantityInfo(amount: apiIngredient.quantity, unit: apiIngredient.unit)
+                        return ScannedIngredient(
+                            name: apiIngredient.name,
+                            quantity: quantityInfo,
+                            estimatedExpiration: apiIngredient.expirationDate,
+                            category: apiIngredient.category
+                        )
+                    }
+                    
+                    return scannedIngredients
+                } catch {
+                    print("DEBUG: Failed to decode as [APIIngredient]: \(error)")
+                    throw APIError.decodingError
+                }
+            }
             
         } catch {
             print("DEBUG: Network or other error: \(error)")

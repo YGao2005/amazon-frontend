@@ -207,8 +207,25 @@ extension Ingredient {
         self.expirationDate = apiIngredient.expirationDate.flatMap { dateString -> Date? in
             print("DEBUG: Trying to parse expiration date: '\(dateString)'")
             
-            // First try ISO8601 format
+            // First try the exact format your backend returns: "2025-08-02T16:51:01.478264Z"
+            let backendFormatter = DateFormatter()
+            backendFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            backendFormatter.timeZone = TimeZone(abbreviation: "UTC")
+            if let date = backendFormatter.date(from: dateString) {
+                print("DEBUG: Successfully parsed expiration date with backend formatter: \(date)")
+                return date
+            }
+            
+            // Try ISO8601 format with fractional seconds
             let iso8601Formatter = ISO8601DateFormatter()
+            iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = iso8601Formatter.date(from: dateString) {
+                print("DEBUG: Successfully parsed expiration date with ISO8601 fractional: \(date)")
+                return date
+            }
+            
+            // Try standard ISO8601 format
+            iso8601Formatter.formatOptions = [.withInternetDateTime]
             if let date = iso8601Formatter.date(from: dateString) {
                 print("DEBUG: Successfully parsed expiration date with ISO8601: \(date)")
                 return date
