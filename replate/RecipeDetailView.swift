@@ -61,6 +61,11 @@ struct RecipeDetailView: View {
                             currentIndex: $currentInstructionIndex
                         )
                         
+                        // Tips Section
+                        if !recipe.tips.isEmpty {
+                            TipsSection(tips: recipe.tips)
+                        }
+                        
                         // Nutrition Info
                         if let nutrition = recipe.nutrition {
                             NutritionSection(nutrition: nutrition)
@@ -311,7 +316,7 @@ struct IngredientDetailRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color(.systemGray6))
+        .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
     }
 }
@@ -440,6 +445,36 @@ struct InstructionStep: View {
     }
 }
 
+struct TipsSection: View {
+    let tips: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Tips")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            VStack(spacing: 12) {
+                ForEach(Array(tips.enumerated()), id: \.offset) { index, tip in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundColor(.yellow)
+                            .font(.subheadline)
+                            .padding(.top, 2)
+                        
+                        Text(tip)
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .background(Color.yellow.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+}
+
 struct NutritionSection: View {
     let nutrition: NutritionInfo
     
@@ -450,14 +485,14 @@ struct NutritionSection: View {
                 .fontWeight(.semibold)
             
             HStack(spacing: 16) {
-                NutritionItem(title: "Calories", value: "\(nutrition.calories)", unit: "kcal")
-                NutritionItem(title: "Protein", value: String(format: "%.1f", nutrition.protein), unit: "g")
-                NutritionItem(title: "Carbs", value: String(format: "%.1f", nutrition.carbs), unit: "g")
-                NutritionItem(title: "Fat", value: String(format: "%.1f", nutrition.fat), unit: "g")
+                NutritionItem(title: "Calories", value: nutrition.calories, unit: "")
+                NutritionItem(title: "Protein", value: nutrition.protein, unit: "")
+                NutritionItem(title: "Carbs", value: nutrition.carbs, unit: "")
+                NutritionItem(title: "Fat", value: nutrition.fat, unit: "")
             }
         }
         .padding(16)
-        .background(Color(.systemGray6))
+        .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
     }
 }
@@ -594,7 +629,7 @@ struct RatingSheet: View {
 #Preview {
     RecipeDetailView(
         recipe: Recipe(
-            name: "Sample Recipe",
+            id: "1", name: "Sample Recipe",
             description: "A delicious sample recipe",
             imageName: "sample",
             cookingTime: 30,
@@ -611,7 +646,7 @@ struct RatingSheet: View {
             ],
             cuisine: .italian,
             dietaryRestrictions: [.vegetarian],
-            nutrition: NutritionInfo(calories: 300, protein: 10, carbs: 40, fat: 12, fiber: 5)
+            nutrition: NutritionInfo(calories: "300", protein: "10g", carbs: "40g", fat: "12g", fiber: "5g")
         )
     )
     .environmentObject(AppState())

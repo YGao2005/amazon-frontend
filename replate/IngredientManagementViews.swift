@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct AddIngredientView: View {
     @EnvironmentObject var appState: AppState
@@ -13,7 +14,7 @@ struct AddIngredientView: View {
     
     @State private var name: String = ""
     @State private var quantity: String = ""
-    @State private var unit: String = ""
+    @State private var unit: MeasurementUnit = .pieces
     @State private var category: IngredientCategory = .other
     @State private var expirationDate: Date = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var hasExpirationDate: Bool = true
@@ -23,7 +24,6 @@ struct AddIngredientView: View {
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !quantity.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !unit.trimmingCharacters(in: .whitespaces).isEmpty &&
         Double(quantity) != nil &&
         Double(quantity)! > 0
     }
@@ -33,7 +33,6 @@ struct AddIngredientView: View {
             Form {
                 Section(header: Text("Ingredient Details")) {
                     TextField("Ingredient name", text: $name)
-                        .textInputAutocapitalization(.words)
                     
                     HStack {
                         TextField("Quantity", text: $quantity)
@@ -41,8 +40,16 @@ struct AddIngredientView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 100)
                         
-                        TextField("Unit (e.g., pieces, grams, ml)", text: $unit)
-                            .textInputAutocapitalization(.none)
+                        Picker("Unit", selection: $unit) {
+                            ForEach(UnitCategory.allCases, id: \.self) { category in
+                                Section(category.rawValue) {
+                                    ForEach(MeasurementUnit.allCases.filter { $0.category == category }, id: \.self) { unit in
+                                        Text(unit.displayName).tag(unit)
+                                    }
+                                }
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
                     }
                     
                     Picker("Category", selection: $category) {
@@ -101,7 +108,7 @@ struct AddIngredientView: View {
         let ingredient = Ingredient(
             name: name.trimmingCharacters(in: .whitespaces),
             quantity: quantityValue,
-            unit: unit.trimmingCharacters(in: .whitespaces),
+            unit: unit,
             category: category,
             expirationDate: hasExpirationDate ? expirationDate : nil
         )
@@ -129,7 +136,7 @@ struct EditIngredientView: View {
     
     @State private var name: String
     @State private var quantity: String
-    @State private var unit: String
+    @State private var unit: MeasurementUnit
     @State private var category: IngredientCategory
     @State private var expirationDate: Date
     @State private var hasExpirationDate: Bool
@@ -149,7 +156,6 @@ struct EditIngredientView: View {
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !quantity.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !unit.trimmingCharacters(in: .whitespaces).isEmpty &&
         Double(quantity) != nil &&
         Double(quantity)! > 0
     }
@@ -167,8 +173,16 @@ struct EditIngredientView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 100)
                         
-                        TextField("Unit", text: $unit)
-                            .textInputAutocapitalization(.none)
+                        Picker("Unit", selection: $unit) {
+                            ForEach(UnitCategory.allCases, id: \.self) { category in
+                                Section(category.rawValue) {
+                                    ForEach(MeasurementUnit.allCases.filter { $0.category == category }, id: \.self) { unit in
+                                        Text(unit.displayName).tag(unit)
+                                    }
+                                }
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
                     }
                     
                     Picker("Category", selection: $category) {
@@ -236,7 +250,7 @@ struct EditIngredientView: View {
         let updatedIngredient = Ingredient(
             name: name.trimmingCharacters(in: .whitespaces),
             quantity: quantityValue,
-            unit: unit.trimmingCharacters(in: .whitespaces),
+            unit: unit,
             category: category,
             expirationDate: hasExpirationDate ? expirationDate : nil
         )
@@ -268,12 +282,12 @@ struct QuickAddIngredientSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var ingredients: [QuickIngredient] = [
-        QuickIngredient(name: "Tomatoes", quantity: 2, unit: "pieces", category: .produce),
-        QuickIngredient(name: "Bananas", quantity: 3, unit: "pieces", category: .produce),
-        QuickIngredient(name: "Milk", quantity: 1, unit: "liter", category: .dairy),
-        QuickIngredient(name: "Bread", quantity: 1, unit: "loaf", category: .grains),
-        QuickIngredient(name: "Eggs", quantity: 12, unit: "pieces", category: .protein),
-        QuickIngredient(name: "Cheese", quantity: 200, unit: "grams", category: .dairy)
+        QuickIngredient(name: "Tomatoes", quantity: 2, unit: .pieces, category: .produce),
+        QuickIngredient(name: "Bananas", quantity: 3, unit: .pieces, category: .produce),
+        QuickIngredient(name: "Milk", quantity: 1, unit: .liters, category: .dairy),
+        QuickIngredient(name: "Bread", quantity: 1, unit: .loaves, category: .grains),
+        QuickIngredient(name: "Eggs", quantity: 12, unit: .pieces, category: .protein),
+        QuickIngredient(name: "Cheese", quantity: 200, unit: .blocks, category: .dairy)
     ]
     
     var body: some View {
@@ -326,7 +340,7 @@ struct QuickIngredient: Identifiable {
     let id = UUID()
     let name: String
     var quantity: Double
-    let unit: String
+    let unit: MeasurementUnit
     let category: IngredientCategory
     var isSelected: Bool = false
 }
@@ -347,7 +361,7 @@ struct QuickAddIngredientRow: View {
                 Text(ingredient.name)
                     .font(.headline)
                 
-                Text("\(String(format: "%.0f", ingredient.quantity)) \(ingredient.unit)")
+                Text("\(String(format: "%.0f", ingredient.quantity)) \(ingredient.unit.displayName)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -373,7 +387,7 @@ struct QuickAddIngredientRow: View {
     EditIngredientView(ingredient: Ingredient(
         name: "Sample Ingredient",
         quantity: 2.0,
-        unit: "pieces",
+        unit: .pieces,
         category: .produce,
         expirationDate: Date()
     ))

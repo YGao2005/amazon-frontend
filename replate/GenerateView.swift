@@ -16,6 +16,7 @@ struct GenerateView: View {
     @State private var servings: Int = 2
     @State private var mustUseIngredients: Set<String> = []
     @State private var showingMustUseSelector = false
+    @State private var manualIngredientInput: String = ""
     
     var body: some View {
         NavigationView {
@@ -57,7 +58,10 @@ struct GenerateView: View {
                         ServingsSection(servings: $servings)
                         
                         // Must-Use Ingredients
-                        MustUseIngredientsSection(mustUseIngredients: $mustUseIngredients)
+                        MustUseIngredientsSection(
+                            mustUseIngredients: $mustUseIngredients,
+                            manualIngredientInput: $manualIngredientInput
+                        )
                         
                         // Special Request
                         SpecialRequestSection(specialRequest: $specialRequest)
@@ -129,6 +133,7 @@ struct GenerateView: View {
         specialRequest = ""
         servings = 2
         mustUseIngredients.removeAll()
+        manualIngredientInput = ""
     }
 }
 
@@ -323,6 +328,7 @@ struct ServingsSection: View {
 
 struct MustUseIngredientsSection: View {
     @Binding var mustUseIngredients: Set<String>
+    @Binding var manualIngredientInput: String
     @EnvironmentObject var appState: AppState
     
     var body: some View {
@@ -331,72 +337,148 @@ struct MustUseIngredientsSection: View {
                 .font(.rainforest.title3)
                 .foregroundColor(Color.rainforest.primaryText)
             
-            Text("Select ingredients that must be included (optional)")
+            Text("Type in or select ingredients that must be included (optional)")
                 .font(.rainforest.body)
                 .foregroundColor(Color.rainforest.secondaryText)
             
-            if appState.ingredients.isEmpty {
-                Text("Add ingredients to your fridge to see options here")
-                    .font(.rainforest.caption)
-                    .foregroundColor(Color.rainforest.secondaryText)
-                    .italic()
-            } else {
+            // Manual ingredient input
+            HStack(spacing: RainforestSpacing.sm) {
+                TextField("Type ingredient name...", text: $manualIngredientInput)
+                    .rainforestTextField()
+                
+                Button(action: addManualIngredient) {
+                    Text("Add")
+                        .font(.rainforest.bodyMedium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, RainforestSpacing.md)
+                        .padding(.vertical, RainforestSpacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(manualIngredientInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
+                                      Color.rainforest.secondaryText : Color.rainforest.primaryGreen)
+                        )
+                }
+                .disabled(manualIngredientInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            
+            // Selected ingredients display
+            if !mustUseIngredients.isEmpty {
+                Text("Selected Ingredients:")
+                    .font(.rainforest.bodyMedium)
+                    .foregroundColor(Color.rainforest.primaryText)
+                
                 LazyVGrid(columns: [
+                    GridItem(.flexible()),
                     GridItem(.flexible()),
                     GridItem(.flexible())
                 ], spacing: RainforestSpacing.sm) {
-                    ForEach(appState.ingredients.prefix(6), id: \.id) { ingredient in
-                        IngredientTag(
-                            ingredient: ingredient,
-                            isSelected: mustUseIngredients.contains(ingredient.name)
+                    ForEach(Array(mustUseIngredients).sorted(), id: \.self) { ingredient in
+                        SelectedIngredientTag(
+                            ingredientName: ingredient
                         ) {
-                            if mustUseIngredients.contains(ingredient.name) {
-                                mustUseIngredients.remove(ingredient.name)
-                            } else {
+                            mustUseIngredients.remove(ingredient)
+                        }
+                    }
+                }
+            }
+            
+            // Available ingredients from fridge
+            if !appState.ingredients.isEmpty {
+                Text("From Your Fridge:")
+                    .font(.rainforest.bodyMedium)
+                    .foregroundColor(Color.rainforest.primaryText)
+                    .padding(.top, RainforestSpacing.sm)
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: RainforestSpacing.sm) {
+                    ForEach(appState.ingredients, id: \.id) { ingredient in
+                        if !mustUseIngredients.contains(ingredient.name) {
+                            AvailableIngredientTag(
+                                ingredient: ingredient
+                            ) {
                                 mustUseIngredients.insert(ingredient.name)
                             }
                         }
                     }
                 }
+            } else {
+                Text("Add ingredients to your fridge to see selection options")
+                    .font(.rainforest.caption)
+                    .foregroundColor(Color.rainforest.secondaryText)
+                    .italic()
+                    .padding(.top, RainforestSpacing.sm)
             }
         }
         .padding(RainforestSpacing.md)
         .rainforestCard()
     }
+    
+    private func addManualIngredient() {
+        let trimmedInput = manualIngredientInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedInput.isEmpty {
+            mustUseIngredients.insert(trimmedInput)
+            manualIngredientInput = ""
+        }
+    }
 }
 
-struct IngredientTag: View {
-    let ingredient: Ingredient
-    let isSelected: Bool
-    let onTap: () -> Void
+struct SelectedIngredientTag: View {
+    let ingredientName: String
+    let onRemove: () -> Void
     
     var body: some View {
-        Button(action: onTap) {
+        Button(action: onRemove) {
             HStack(spacing: RainforestSpacing.xs) {
-                Text(ingredient.name)
+                Text(ingredientName)
                     .font(.rainforest.body)
+                    .foregroundColor(.white)
                 
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.rainforest.caption)
-                }
+                Image(systemName: "xmark.circle.fill")
+                    .font(.rainforest.caption)
+                    .foregroundColor(.white.opacity(0.8))
             }
-            .foregroundColor(isSelected ? .white : Color.rainforest.primaryText)
             .padding(.horizontal, RainforestSpacing.md)
             .padding(.vertical, RainforestSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.rainforest.accent : Color.rainforest.cardBackground)
+                    .fill(Color.rainforest.accent)
                     .shadow(
-                        color: isSelected ? Color.rainforest.shadowColor : .clear,
+                        color: Color.rainforest.shadowColor,
                         radius: 4,
                         x: 0,
                         y: 2
                     )
             )
-            .overlay(
+        }
+    }
+}
+
+struct AvailableIngredientTag: View {
+    let ingredient: Ingredient
+    let onAdd: () -> Void
+    
+    var body: some View {
+        Button(action: onAdd) {
+            HStack(spacing: RainforestSpacing.xs) {
+                Text(ingredient.name)
+                    .font(.rainforest.body)
+                
+                Image(systemName: "plus.circle")
+                    .font(.rainforest.caption)
+            }
+            .foregroundColor(Color.rainforest.primaryText)
+            .padding(.horizontal, RainforestSpacing.md)
+            .padding(.vertical, RainforestSpacing.sm)
+            .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? .clear : Color.rainforest.borderColor, lineWidth: 1)
+                    .fill(Color.rainforest.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.rainforest.borderColor, lineWidth: 1)
+                    )
             )
         }
     }

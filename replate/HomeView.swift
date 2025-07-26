@@ -102,21 +102,22 @@ struct HomeView: View {
 struct RecipeCard: View {
     let recipe: Recipe
     @EnvironmentObject var appState: AppState
-    @StateObject private var imageLoader = AsyncImageLoader()
     
     var body: some View {
         VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             // Recipe Image
-            RoundedRectangle(cornerRadius: 16)
-                .frame(height: 220)
-                .overlay(
-                    Group {
-                        if let image = imageLoader.image {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .clipped()
-                        } else if imageLoader.isLoading {
+            if let imageUrl = recipe.imageName, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 220)
+                        .clipped()
+                        .cornerRadius(16)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 16)
+                        .frame(height: 220)
+                        .overlay(
                             VStack(spacing: RainforestSpacing.sm) {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: Color.rainforest.primaryGreen))
@@ -125,31 +126,31 @@ struct RecipeCard: View {
                                     .font(.rainforest.caption)
                                     .foregroundColor(Color.rainforest.secondaryText)
                             }
-                        } else {
-                            LinearGradient(
-                                colors: [Color.rainforest.secondaryGreen.opacity(0.4), Color.rainforest.primaryGreen.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .overlay(
-                                VStack(spacing: RainforestSpacing.sm) {
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(Color.rainforest.secondaryText)
-                                    Text("Recipe Image")
-                                        .font(.rainforest.caption)
-                                        .foregroundColor(Color.rainforest.secondaryText)
-                                }
-                            )
-                        }
-                    }
-                )
-                .cornerRadius(16)
-                .onAppear {
-                    if let imageUrl = recipe.imageName, !imageUrl.isEmpty {
-                        imageLoader.loadImage(from: imageUrl)
-                    }
+                        )
+                        .foregroundColor(Color.rainforest.secondaryGreen.opacity(0.3))
                 }
+            } else {
+                RoundedRectangle(cornerRadius: 16)
+                    .frame(height: 220)
+                    .overlay(
+                        LinearGradient(
+                            colors: [Color.rainforest.secondaryGreen.opacity(0.4), Color.rainforest.primaryGreen.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .overlay(
+                            VStack(spacing: RainforestSpacing.sm) {
+                                Image(systemName: "photo")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(Color.rainforest.secondaryText)
+                                Text("Recipe Image")
+                                    .font(.rainforest.caption)
+                                    .foregroundColor(Color.rainforest.secondaryText)
+                            }
+                        )
+                    )
+                    .cornerRadius(16)
+            }
             
             VStack(alignment: .leading, spacing: RainforestSpacing.sm) {
                 // Recipe Info

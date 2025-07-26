@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Foundation
+import Foundation
 
 struct FridgeView: View {
     @EnvironmentObject var appState: AppState
@@ -15,10 +17,21 @@ struct FridgeView: View {
     @State private var ingredientToEdit: Ingredient?
     
     var filteredIngredients: [Ingredient] {
-        if let category = selectedCategory {
-            return appState.ingredients.filter { $0.category == category }
+        let ingredients = if let category = selectedCategory {
+            appState.ingredients.filter { $0.category == category }
+        } else {
+            appState.ingredients
         }
-        return appState.ingredients
+        
+        // Debug logging for expiration dates
+        for ingredient in ingredients {
+            print("DEBUG: FridgeView - Ingredient '\(ingredient.name)':")
+            print("  - Expiration date: \(ingredient.expirationDate?.description ?? "nil")")
+            print("  - Days until expiration: \(ingredient.daysUntilExpiration?.description ?? "nil")")
+            print("  - Expiration status: \(ingredient.expirationStatus)")
+        }
+        
+        return ingredients
     }
     
     var groupedIngredients: [IngredientCategory: [Ingredient]] {
@@ -207,7 +220,7 @@ struct IngredientRow: View {
             
             // Expiration Info
             if let days = ingredient.daysUntilExpiration {
-                VStack(alignment: .trailing, spacing: RainforestSpacing.xs) {
+                HStack(spacing: RainforestSpacing.xs) {
                     if days < 0 {
                         Text("Expired")
                             .font(.rainforest.caption)
@@ -273,96 +286,6 @@ struct FridgeEmptyStateView: View {
     }
 }
 
-struct CameraScannerView: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var appState: AppState
-    @State private var isProcessing = false
-    @State private var showingConfirmation = false
-    @State private var detectedIngredients: [Ingredient] = []
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                if isProcessing {
-                    ProcessingView()
-                } else {
-                    CameraPreviewView()
-                }
-                
-                Spacer()
-                
-                HStack(spacing: RainforestSpacing.lg) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                    .frame(width: 80, height: 50)
-                    .background(Color.rainforest.secondaryText)
-                    .cornerRadius(25)
-                    
-                    Button(action: capturePhoto) {
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 70, height: 70)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.rainforest.secondaryText, lineWidth: 3)
-                                    .frame(width: 65, height: 65)
-                            )
-                    }
-                    .disabled(isProcessing)
-                    
-                    Button("Gallery") {
-                        // Open photo gallery
-                        simulatePhotoCapture()
-                    }
-                    .foregroundColor(.white)
-                    .frame(width: 80, height: 50)
-                    .background(Color.rainforest.primaryGreen)
-                    .cornerRadius(25)
-                }
-                .padding(.bottom, 40)
-            }
-            .background(.black)
-            .navigationBarHidden(true)
-        }
-        .sheet(isPresented: $showingConfirmation) {
-            IngredientConfirmationView(detectedIngredients: detectedIngredients) {
-                dismiss()
-            }
-        }
-    }
-    
-    private func capturePhoto() {
-        simulatePhotoCapture()
-    }
-    
-    private func simulatePhotoCapture() {
-        isProcessing = true
-        
-        // In a real implementation, this would capture an actual photo
-        // For now, we'll use a placeholder image or simulate the photo data
-        guard let placeholderImage = UIImage(systemName: "photo")?.jpegData(compressionQuality: 0.8) else {
-            isProcessing = false
-            return
-        }
-        
-        // Use the app state to call the real API
-        appState.scanIngredients(imageData: placeholderImage)
-        
-        // Monitor app state for results
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            // Convert scanned results to detectedIngredients for confirmation
-            if !appState.isLoading {
-                // For this demo, we'll use the last few ingredients as "detected" ones
-                self.detectedIngredients = Array(appState.ingredients.suffix(3))
-                self.isProcessing = false
-                self.showingConfirmation = true
-            }
-        }
-    }
-}
-
 struct CameraPreviewView: View {
     var body: some View {
         Rectangle()
@@ -412,7 +335,7 @@ struct IngredientConfirmationView: View {
         NavigationView {
             VStack {
                 List {
-                    ForEach($detectedIngredients) { $ingredient in
+                    ForEach($detectedIngredients, id: \.id) { $ingredient in
                         IngredientConfirmationRow(ingredient: $ingredient)
                     }
                     .onDelete { indexSet in
@@ -457,9 +380,13 @@ struct IngredientConfirmationRow: View {
                     .rainforestTextField()
                     .frame(width: 80)
                 
-                TextField("Unit", text: $ingredient.unit)
-                    .rainforestTextField()
-                    .frame(width: 80)
+                Picker("Unit", selection: $ingredient.unit) {
+                    ForEach(MeasurementUnit.allCases, id: \.self) { unit in
+                        Text(unit.displayName).tag(unit)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .frame(width: 80)
                 
                 Spacer()
                 

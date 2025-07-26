@@ -254,6 +254,7 @@ struct DietaryRestrictionRow: View {
         case .nutFree: return "exclamationmark.triangle.fill"
         case .lowCarb: return "minus.circle.fill"
         case .keto: return "k.circle.fill"
+        case .highProtein: return "dumbbell.fill"
         }
     }
     
@@ -264,6 +265,7 @@ struct DietaryRestrictionRow: View {
         case .dairyFree: return Color.rainforest.secondaryGreen
         case .nutFree: return .red
         case .lowCarb, .keto: return Color.rainforest.secondaryText
+        case .highProtein: return Color.rainforest.primaryGreen
         }
     }
 }
