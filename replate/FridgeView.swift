@@ -32,11 +32,13 @@ struct FridgeView: View {
                 CategoryPicker(selectedCategory: $selectedCategory)
                 
                 if appState.isLoading && appState.ingredients.isEmpty {
-                    VStack {
+                    VStack(spacing: RainforestSpacing.md) {
                         ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color.rainforest.primaryGreen))
                             .scaleEffect(1.5)
                         Text("Loading ingredients...")
-                            .padding(.top)
+                            .font(.rainforest.body)
+                            .foregroundColor(Color.rainforest.secondaryText)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if appState.ingredients.isEmpty {
@@ -68,48 +70,42 @@ struct FridgeView: View {
                                         onEdit: { ingredientToEdit = ingredient },
                                         onDelete: { appState.removeIngredient(ingredient) }
                                     )
-                                    .padding(.horizontal)
+                                    .padding(.horizontal, RainforestSpacing.md)
                                 }
                             }
                         }
-                        .padding(.top, 16)
+                        .padding(.top, RainforestSpacing.lg)
                     }
                 }
                 
                 Spacer()
                 
                 // Action Buttons
-                VStack(spacing: 12) {
+                VStack(spacing: RainforestSpacing.md) {
                     Button(action: { showingScanner = true }) {
-                        HStack {
+                        HStack(spacing: RainforestSpacing.sm) {
                             Image(systemName: "camera")
-                                .font(.title2)
+                                .rainforestIcon(size: 20)
+                                .foregroundColor(.white)
                             Text("Scan Fridge")
-                                .font(.headline)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(.blue)
-                        .cornerRadius(12)
                     }
+                    .primaryButtonStyle()
                     
                     Button(action: { showingAddIngredient = true }) {
-                        HStack {
+                        HStack(spacing: RainforestSpacing.sm) {
                             Image(systemName: "plus")
+                                .rainforestIcon(size: 16)
+                                .foregroundColor(Color.rainforest.primaryGreen)
                             Text("Add Manually")
                         }
-                        .foregroundColor(.blue)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(12)
                     }
+                    .secondaryButtonStyle()
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
+                .padding(.horizontal, RainforestSpacing.md)
+                .padding(.bottom, RainforestSpacing.lg)
             }
-            .navigationTitle("My Ingredients")
+            .background(Color.rainforest.primaryBackground)
             .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showingScanner) {
@@ -129,7 +125,7 @@ struct CategoryPicker: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: RainforestSpacing.sm) {
                 CategoryTab(
                     title: "All",
                     isSelected: selectedCategory == nil,
@@ -144,9 +140,9 @@ struct CategoryPicker: View {
                     )
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, RainforestSpacing.md)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, RainforestSpacing.sm)
     }
 }
 
@@ -158,16 +154,8 @@ struct CategoryTab: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? .blue : Color(.systemGray6))
-                )
         }
+        .rainforestTab(isSelected: isSelected)
     }
 }
 
@@ -178,11 +166,11 @@ struct IngredientCategorySection: View {
     let onDelete: (Ingredient) -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text(category.rawValue)
-                .font(.title3)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
+                .padding(.horizontal, RainforestSpacing.md)
             
             ForEach(ingredients) { ingredient in
                 IngredientRow(
@@ -190,10 +178,10 @@ struct IngredientCategorySection: View {
                     onEdit: { onEdit(ingredient) },
                     onDelete: { onDelete(ingredient) }
                 )
-                .padding(.horizontal)
+                .padding(.horizontal, RainforestSpacing.md)
             }
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, RainforestSpacing.lg)
     }
 }
 
@@ -203,41 +191,40 @@ struct IngredientRow: View {
     let onDelete: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: RainforestSpacing.md) {
             // Ingredient Info
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: RainforestSpacing.xs) {
                 Text(ingredient.name)
-                    .font(.headline)
+                    .font(.rainforest.title3)
+                    .foregroundColor(Color.rainforest.primaryText)
                 
                 Text("\(String(format: "%.1f", ingredient.quantity)) \(ingredient.unit)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.rainforest.body)
+                    .foregroundColor(Color.rainforest.secondaryText)
             }
             
             Spacer()
             
             // Expiration Info
             if let days = ingredient.daysUntilExpiration {
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: RainforestSpacing.xs) {
                     if days < 0 {
                         Text("Expired")
-                            .font(.caption)
-                            .fontWeight(.semibold)
+                            .font(.rainforest.caption)
                             .foregroundColor(.red)
                     } else if days == 0 {
                         Text("Today")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.orange)
+                            .font(.rainforest.caption)
+                            .foregroundColor(Color.rainforest.accent)
                     } else {
                         Text("\(days) day\(days == 1 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.rainforest.caption)
+                            .foregroundColor(Color.rainforest.secondaryText)
                     }
                     
                     Circle()
                         .fill(ingredient.expirationStatus.color)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 10, height: 10)
                 }
             }
             
@@ -247,34 +234,40 @@ struct IngredientRow: View {
                 Button("Delete", role: .destructive, action: onDelete)
             } label: {
                 Image(systemName: "ellipsis")
-                    .foregroundColor(.secondary)
-                    .padding(8)
+                    .foregroundColor(Color.rainforest.secondaryText)
+                    .padding(RainforestSpacing.sm)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .padding(.horizontal, RainforestSpacing.md)
+        .padding(.vertical, RainforestSpacing.md)
+        .rainforestCard()
+        .padding(.horizontal, 2) // Small padding to prevent shadow clipping
     }
 }
 
 struct FridgeEmptyStateView: View {
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "refrigerator")
-                .font(.system(size: 60))
-                .foregroundColor(.gray)
+        VStack(spacing: RainforestSpacing.lg) {
+            Circle()
+                .fill(Color.rainforest.secondaryGreen.opacity(0.2))
+                .frame(width: 120, height: 120)
+                .overlay(
+                    Image(systemName: "refrigerator")
+                        .font(.system(size: 50))
+                        .foregroundColor(Color.rainforest.secondaryGreen)
+                )
             
-            Text("Your fridge is empty!")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Text("Start by scanning your fridge or adding ingredients manually")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            VStack(spacing: RainforestSpacing.sm) {
+                Text("Your fridge is empty!")
+                    .font(.rainforest.title2)
+                    .foregroundColor(Color.rainforest.primaryText)
+                
+                Text("Start by scanning your fridge or adding ingredients manually")
+                    .font(.rainforest.body)
+                    .foregroundColor(Color.rainforest.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, RainforestSpacing.xxl)
+            }
         }
         .padding(.top, 80)
     }
@@ -298,13 +291,13 @@ struct CameraScannerView: View {
                 
                 Spacer()
                 
-                HStack(spacing: 20) {
+                HStack(spacing: RainforestSpacing.lg) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .foregroundColor(.white)
                     .frame(width: 80, height: 50)
-                    .background(Color.gray)
+                    .background(Color.rainforest.secondaryText)
                     .cornerRadius(25)
                     
                     Button(action: capturePhoto) {
@@ -313,7 +306,7 @@ struct CameraScannerView: View {
                             .frame(width: 70, height: 70)
                             .overlay(
                                 Circle()
-                                    .stroke(.gray, lineWidth: 3)
+                                    .stroke(Color.rainforest.secondaryText, lineWidth: 3)
                                     .frame(width: 65, height: 65)
                             )
                     }
@@ -325,7 +318,7 @@ struct CameraScannerView: View {
                     }
                     .foregroundColor(.white)
                     .frame(width: 80, height: 50)
-                    .background(Color.blue)
+                    .background(Color.rainforest.primaryGreen)
                     .cornerRadius(25)
                 }
                 .padding(.bottom, 40)
@@ -433,12 +426,8 @@ struct IngredientConfirmationView: View {
                     }
                     onDismiss()
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(.blue)
-                .cornerRadius(12)
-                .padding()
+                .primaryButtonStyle()
+                .padding(RainforestSpacing.md)
             }
             .navigationTitle("Confirm Ingredients")
             .navigationBarTitleDisplayMode(.inline)
@@ -458,30 +447,34 @@ struct IngredientConfirmationRow: View {
     @Binding var ingredient: Ingredient
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.sm) {
             TextField("Ingredient name", text: $ingredient.name)
-                .font(.headline)
+                .font(.rainforest.body)
+                .rainforestTextField()
             
-            HStack {
+            HStack(spacing: RainforestSpacing.sm) {
                 TextField("Quantity", value: $ingredient.quantity, format: .number)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .rainforestTextField()
                     .frame(width: 80)
                 
                 TextField("Unit", text: $ingredient.unit)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .rainforestTextField()
                     .frame(width: 80)
                 
                 Spacer()
                 
                 Picker("Category", selection: $ingredient.category) {
                     ForEach(IngredientCategory.allCases, id: \.self) { category in
-                        Text(category.rawValue).tag(category)
+                        Text(category.rawValue)
+                            .font(.rainforest.body)
+                            .tag(category)
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
+                .foregroundColor(Color.rainforest.primaryText)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, RainforestSpacing.xs)
     }
 }
 

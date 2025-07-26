@@ -36,8 +36,11 @@ struct ContentView: View {
                 }
                 .tag(3)
         }
+        .background(Color.rainforest.primaryBackground)
+        .accentColor(Color.rainforest.primaryGreen)
         .environmentObject(appState)
         .onAppear {
+            configureTabBarAppearance()
             loadDataFromBackend()
         }
         .alert("Error", isPresented: .constant(appState.errorMessage != nil)) {
@@ -47,6 +50,18 @@ struct ContentView: View {
         } message: {
             Text(appState.errorMessage ?? "An unknown error occurred")
         }
+    }
+    
+    private func configureTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.rainforest.cardBackground)
+        appearance.shadowColor = UIColor(Color.rainforest.shadowColor)
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().tintColor = UIColor(Color.rainforest.primaryGreen)
+        UITabBar.appearance().unselectedItemTintColor = UIColor(Color.rainforest.secondaryText)
     }
     
     private func loadDataFromBackend() {

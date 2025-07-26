@@ -13,81 +13,145 @@ struct ProfileView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                // Profile Header
-                ProfileHeaderSection()
-                
-                // Dietary Restrictions
-                Section(header: Text("Dietary Restrictions")) {
-                    ForEach(DietaryRestriction.allCases, id: \.self) { restriction in
-                        DietaryRestrictionRow(
-                            restriction: restriction,
-                            isSelected: appState.userPreferences.dietaryRestrictions.contains(restriction)
-                        ) { isSelected in
-                            if isSelected {
-                                appState.userPreferences.dietaryRestrictions.insert(restriction)
-                            } else {
-                                appState.userPreferences.dietaryRestrictions.remove(restriction)
+            ScrollView {
+                VStack(spacing: RainforestSpacing.lg) {
+                    // Profile Header
+                    ProfileHeaderSection()
+                    
+                    VStack(spacing: RainforestSpacing.lg) {
+                        // Dietary Restrictions
+                        ProfileSectionCard(title: "Dietary Restrictions") {
+                            VStack(spacing: RainforestSpacing.sm) {
+                                ForEach(DietaryRestriction.allCases, id: \.self) { restriction in
+                                    DietaryRestrictionRow(
+                                        restriction: restriction,
+                                        isSelected: appState.userPreferences.dietaryRestrictions.contains(restriction)
+                                    ) { isSelected in
+                                        if isSelected {
+                                            appState.userPreferences.dietaryRestrictions.insert(restriction)
+                                        } else {
+                                            appState.userPreferences.dietaryRestrictions.remove(restriction)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Preferred Cuisines
+                        ProfileSectionCard(title: "Preferred Cuisines") {
+                            VStack(spacing: RainforestSpacing.sm) {
+                                ForEach(CuisineType.allCases, id: \.self) { cuisine in
+                                    CuisinePreferenceRow(
+                                        cuisine: cuisine,
+                                        isSelected: appState.userPreferences.preferredCuisines.contains(cuisine)
+                                    ) { isSelected in
+                                        if isSelected {
+                                            appState.userPreferences.preferredCuisines.insert(cuisine)
+                                        } else {
+                                            appState.userPreferences.preferredCuisines.remove(cuisine)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Cooking Settings
+                        ProfileSectionCard(title: "Cooking Settings") {
+                            VStack(spacing: RainforestSpacing.md) {
+                                HStack {
+                                    Text("Skill Level")
+                                        .font(.rainforest.body)
+                                        .foregroundColor(Color.rainforest.primaryText)
+                                    Spacer()
+                                    Picker("Skill Level", selection: $appState.userPreferences.skillLevel) {
+                                        ForEach(DifficultyLevel.allCases, id: \.self) { level in
+                                            Text(level.rawValue)
+                                                .font(.rainforest.body)
+                                                .tag(level)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .foregroundColor(Color.rainforest.primaryGreen)
+                                }
+                                
+                                HStack {
+                                    Text("Default Servings")
+                                        .font(.rainforest.body)
+                                        .foregroundColor(Color.rainforest.primaryText)
+                                    Spacer()
+                                    HStack(spacing: RainforestSpacing.sm) {
+                                        Button(action: { 
+                                            if appState.userPreferences.defaultServings > 1 {
+                                                appState.userPreferences.defaultServings -= 1
+                                            }
+                                        }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundColor(Color.rainforest.secondaryGreen)
+                                        }
+                                        
+                                        Text("\(appState.userPreferences.defaultServings)")
+                                            .font(.rainforest.bodyMedium)
+                                            .foregroundColor(Color.rainforest.primaryText)
+                                            .frame(minWidth: 24)
+                                        
+                                        Button(action: { 
+                                            if appState.userPreferences.defaultServings < 8 {
+                                                appState.userPreferences.defaultServings += 1
+                                            }
+                                        }) {
+                                            Image(systemName: "plus.circle.fill")
+                                                .foregroundColor(Color.rainforest.primaryGreen)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // App Settings
+                        ProfileSectionCard(title: "App") {
+                            VStack(spacing: RainforestSpacing.sm) {
+                                Button("About Replate") {
+                                    showingAbout = true
+                                }
+                                .secondaryButtonStyle()
+                                
+                                Button("Reset All Data") {
+                                    resetAllData()
+                                }
+                                .foregroundColor(.red)
+                                .font(.rainforest.buttonText)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .stroke(.red, lineWidth: 1.5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 24)
+                                                .fill(Color.red.opacity(0.05))
+                                        )
+                                )
+                            }
+                        }
+                        
+                        // Statistics
+                        ProfileSectionCard(title: "Statistics") {
+                            VStack(spacing: RainforestSpacing.sm) {
+                                StatisticRow(title: "Recipes Generated", value: "\(appState.recipes.count)")
+                                StatisticRow(title: "Recipes Cooked", value: "\(appState.recipes.filter { $0.isCooked }.count)")
+                                StatisticRow(title: "Ingredients in Fridge", value: "\(appState.ingredients.count)")
+                                
+                                if !appState.recipes.filter({ $0.isCooked }).isEmpty {
+                                    let avgRating = appState.recipes.compactMap { $0.rating }.reduce(0, +) / Double(appState.recipes.compactMap { $0.rating }.count)
+                                    StatisticRow(title: "Average Rating", value: String(format: "%.1f", avgRating))
+                                }
                             }
                         }
                     }
+                    .padding(.horizontal, RainforestSpacing.md)
                 }
-                
-                // Preferred Cuisines
-                Section(header: Text("Preferred Cuisines")) {
-                    ForEach(CuisineType.allCases, id: \.self) { cuisine in
-                        CuisinePreferenceRow(
-                            cuisine: cuisine,
-                            isSelected: appState.userPreferences.preferredCuisines.contains(cuisine)
-                        ) { isSelected in
-                            if isSelected {
-                                appState.userPreferences.preferredCuisines.insert(cuisine)
-                            } else {
-                                appState.userPreferences.preferredCuisines.remove(cuisine)
-                            }
-                        }
-                    }
-                }
-                
-                // Cooking Settings
-                Section(header: Text("Cooking Settings")) {
-                    Picker("Skill Level", selection: $appState.userPreferences.skillLevel) {
-                        ForEach(DifficultyLevel.allCases, id: \.self) { level in
-                            Text(level.rawValue).tag(level)
-                        }
-                    }
-                    
-                    Stepper("Default Servings: \(appState.userPreferences.defaultServings)", 
-                           value: $appState.userPreferences.defaultServings, 
-                           in: 1...8)
-                }
-                
-                // App Settings
-                Section(header: Text("App")) {
-                    Button("About Replate") {
-                        showingAbout = true
-                    }
-                    .foregroundColor(.primary)
-                    
-                    Button("Reset All Data") {
-                        resetAllData()
-                    }
-                    .foregroundColor(.red)
-                }
-                
-                // Statistics
-                Section(header: Text("Statistics")) {
-                    StatisticRow(title: "Recipes Generated", value: "\(appState.recipes.count)")
-                    StatisticRow(title: "Recipes Cooked", value: "\(appState.recipes.filter { $0.isCooked }.count)")
-                    StatisticRow(title: "Ingredients in Fridge", value: "\(appState.ingredients.count)")
-                    
-                    if !appState.recipes.filter({ $0.isCooked }).isEmpty {
-                        let avgRating = appState.recipes.compactMap { $0.rating }.reduce(0, +) / Double(appState.recipes.compactMap { $0.rating }.count)
-                        StatisticRow(title: "Average Rating", value: String(format: "%.1f", avgRating))
-                    }
-                }
+                .padding(.bottom, RainforestSpacing.xl)
             }
-            .navigationTitle("Profile")
+            .background(Color.rainforest.primaryBackground)
             .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showingAbout) {
@@ -107,25 +171,50 @@ struct ProfileView: View {
 
 struct ProfileHeaderSection: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
+        VStack(spacing: RainforestSpacing.lg) {
+            Circle()
+                .fill(Color.rainforest.secondaryGreen.opacity(0.2))
+                .frame(width: 100, height: 100)
+                .overlay(
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(Color.rainforest.primaryGreen)
+                )
             
-            VStack(spacing: 4) {
+            VStack(spacing: RainforestSpacing.xs) {
                 Text("Welcome to Replate!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.rainforest.title1)
+                    .foregroundColor(Color.rainforest.primaryText)
                 
                 Text("Personalize your recipe experience")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.rainforest.body)
+                    .foregroundColor(Color.rainforest.secondaryText)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .padding(.vertical, RainforestSpacing.lg)
+    }
+}
+
+struct ProfileSectionCard<Content: View>: View {
+    let title: String
+    let content: Content
+    
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
+            Text(title)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
+            
+            content
+        }
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
@@ -135,12 +224,15 @@ struct DietaryRestrictionRow: View {
     let onToggle: (Bool) -> Void
     
     var body: some View {
-        HStack {
+        HStack(spacing: RainforestSpacing.md) {
             Image(systemName: iconName)
-                .foregroundColor(iconColor)
+                .foregroundColor(isSelected ? Color.rainforest.primaryGreen : iconColor)
                 .frame(width: 24)
+                .rainforestIcon(size: 16)
             
             Text(restriction.rawValue)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Spacer()
             
@@ -148,7 +240,9 @@ struct DietaryRestrictionRow: View {
                 get: { isSelected },
                 set: { onToggle($0) }
             ))
+            .tint(Color.rainforest.primaryGreen)
         }
+        .padding(.vertical, RainforestSpacing.xs)
     }
     
     private var iconName: String {
@@ -165,11 +259,11 @@ struct DietaryRestrictionRow: View {
     
     private var iconColor: Color {
         switch restriction {
-        case .vegetarian, .vegan: return .green
-        case .glutenFree: return .orange
-        case .dairyFree: return .blue
+        case .vegetarian, .vegan: return Color.rainforest.primaryGreen
+        case .glutenFree: return Color.rainforest.accent
+        case .dairyFree: return Color.rainforest.secondaryGreen
         case .nutFree: return .red
-        case .lowCarb, .keto: return .purple
+        case .lowCarb, .keto: return Color.rainforest.secondaryText
         }
     }
 }
@@ -180,12 +274,14 @@ struct CuisinePreferenceRow: View {
     let onToggle: (Bool) -> Void
     
     var body: some View {
-        HStack {
-            Image(systemName: iconName)
-                .foregroundColor(.blue)
-                .frame(width: 24)
+        HStack(spacing: RainforestSpacing.md) {
+            Text(flagEmoji)
+                .font(.system(size: 20))
+                .opacity(isSelected ? 1.0 : 0.6)
             
             Text(cuisine.rawValue)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Spacer()
             
@@ -193,19 +289,21 @@ struct CuisinePreferenceRow: View {
                 get: { isSelected },
                 set: { onToggle($0) }
             ))
+            .tint(Color.rainforest.primaryGreen)
         }
+        .padding(.vertical, RainforestSpacing.xs)
     }
     
-    private var iconName: String {
+    private var flagEmoji: String {
         switch cuisine {
-        case .italian: return "flag.fill"
-        case .mexican: return "chili.fill"
-        case .asian: return "takeoutbag.and.cupboard.and.fork"
-        case .american: return "hamburger.fill"
-        case .mediterranean: return "fish.fill"
-        case .indian: return "fork.knife"
-        case .french: return "croissant.fill"
-        case .other: return "globe"
+        case .italian: return "🇮🇹"
+        case .mexican: return "🇲🇽"
+        case .asian: return "🇯🇵"
+        case .american: return "🇺🇸"
+        case .mediterranean: return "🇬🇷"
+        case .indian: return "🇮🇳"
+        case .french: return "🇫🇷"
+        case .other: return "🌍"
         }
     }
 }
@@ -217,14 +315,16 @@ struct StatisticRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundColor(.primary)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Spacer()
             
             Text(value)
-                .foregroundColor(.secondary)
-                .fontWeight(.medium)
+                .font(.rainforest.bodyMedium)
+                .foregroundColor(Color.rainforest.primaryGreen)
         }
+        .padding(.vertical, RainforestSpacing.xs)
     }
 }
 
@@ -234,49 +334,60 @@ struct AboutView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: RainforestSpacing.xl) {
                     // App Icon
-                    Image(systemName: "fork.knife.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.blue)
+                    Circle()
+                        .fill(Color.rainforest.secondaryGreen.opacity(0.2))
+                        .frame(width: 120, height: 120)
+                        .overlay(
+                            Image(systemName: "fork.knife.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(Color.rainforest.primaryGreen)
+                        )
                     
-                    VStack(spacing: 8) {
+                    VStack(spacing: RainforestSpacing.sm) {
                         Text("Replate")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.rainforest.title1)
+                            .foregroundColor(Color.rainforest.primaryText)
                         
                         Text("Version 1.0.0")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(.rainforest.body)
+                            .foregroundColor(Color.rainforest.secondaryText)
                     }
                     
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("About")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                    VStack(alignment: .leading, spacing: RainforestSpacing.lg) {
+                        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
+                            Text("About")
+                                .font(.rainforest.title2)
+                                .foregroundColor(Color.rainforest.primaryText)
+                            
+                            Text("Replate is your smart cooking companion that helps you create delicious recipes based on the ingredients you have available. Using advanced AI technology, we transform your fridge contents into culinary inspiration.")
+                                .font(.rainforest.body)
+                                .foregroundColor(Color.rainforest.secondaryText)
+                                .lineSpacing(4)
+                        }
                         
-                        Text("Replate is your smart cooking companion that helps you create delicious recipes based on the ingredients you have available. Using advanced AI technology, we transform your fridge contents into culinary inspiration.")
-                            .font(.body)
-                            .lineSpacing(4)
-                        
-                        Text("Features:")
-                            .font(.headline)
-                            .padding(.top, 8)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            FeatureBullet(text: "Smart ingredient scanning with camera")
-                            FeatureBullet(text: "AI-powered recipe generation")
-                            FeatureBullet(text: "Personalized dietary preferences")
-                            FeatureBullet(text: "Expiration date tracking")
-                            FeatureBullet(text: "Recipe rating and history")
+                        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
+                            Text("Features:")
+                                .font(.rainforest.title3)
+                                .foregroundColor(Color.rainforest.primaryText)
+                            
+                            VStack(alignment: .leading, spacing: RainforestSpacing.sm) {
+                                FeatureBullet(text: "Smart ingredient scanning with camera")
+                                FeatureBullet(text: "AI-powered recipe generation")
+                                FeatureBullet(text: "Personalized dietary preferences")
+                                FeatureBullet(text: "Expiration date tracking")
+                                FeatureBullet(text: "Recipe rating and history")
+                            }
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, RainforestSpacing.lg)
                     
                     Spacer()
                 }
-                .padding(.top, 40)
+                .padding(.top, RainforestSpacing.xxl)
             }
+            .background(Color.rainforest.primaryBackground)
             .navigationTitle("About")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -284,6 +395,7 @@ struct AboutView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Color.rainforest.primaryGreen)
                 }
             }
         }
@@ -294,14 +406,15 @@ struct FeatureBullet: View {
     let text: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: RainforestSpacing.sm) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.caption)
+                .foregroundColor(Color.rainforest.primaryGreen)
+                .font(.rainforest.caption)
                 .padding(.top, 2)
             
             Text(text)
-                .font(.subheadline)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.primaryText)
         }
     }
 }

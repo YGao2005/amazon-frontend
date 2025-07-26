@@ -20,26 +20,33 @@ struct GenerateView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: RainforestSpacing.xl) {
                     // Header
-                    VStack(spacing: 8) {
-                        Image(systemName: "wand.and.stars")
-                            .font(.system(size: 40))
-                            .foregroundColor(.blue)
+                    VStack(spacing: RainforestSpacing.lg) {
+                        Circle()
+                            .fill(Color.rainforest.secondaryGreen.opacity(0.2))
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(Color.rainforest.primaryGreen)
+                            )
                         
-                        Text("Generate Recipe")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        
-                        Text("Create delicious recipes based on your preferences and available ingredients")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
+                        VStack(spacing: RainforestSpacing.sm) {
+                            Text("Generate Recipe")
+                                .font(.rainforest.title1)
+                                .foregroundColor(Color.rainforest.primaryText)
+                            
+                            Text("Create delicious recipes based on your preferences and available ingredients")
+                                .font(.rainforest.body)
+                                .foregroundColor(Color.rainforest.secondaryText)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, RainforestSpacing.lg)
+                        }
                     }
-                    .padding(.top, 20)
+                    .padding(.top, RainforestSpacing.lg)
                     
-                    VStack(spacing: 20) {
+                    VStack(spacing: RainforestSpacing.lg) {
                         // Cuisine Selection
                         CuisineSelectionSection(selectedCuisines: $selectedCuisines)
                         
@@ -57,35 +64,27 @@ struct GenerateView: View {
                         
                         // Generate Button
                         Button(action: generateRecipes) {
-                            HStack {
+                            HStack(spacing: RainforestSpacing.sm) {
                                 if isGenerating || appState.isLoading {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .scaleEffect(0.8)
                                 } else {
                                     Image(systemName: "sparkles")
+                                        .foregroundColor(.white)
                                 }
                                 Text(isGenerating || appState.isLoading ? "Generating..." : "Generate Recipes")
-                                    .fontWeight(.semibold)
                             }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(16)
                         }
+                        .primaryButtonStyle()
                         .disabled(isGenerating || appState.isLoading)
-                        .padding(.top, 10)
+                        .padding(.top, RainforestSpacing.sm)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, RainforestSpacing.md)
                 }
+                .padding(.bottom, RainforestSpacing.xl)
             }
+            .background(Color.rainforest.primaryBackground)
             .navigationBarHidden(true)
         }
     }
@@ -137,19 +136,19 @@ struct CuisineSelectionSection: View {
     @Binding var selectedCuisines: Set<CuisineType>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text("Preferred Cuisines")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Text("Select cuisines you'd like to explore (optional)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.secondaryText)
             
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 12) {
+            ], spacing: RainforestSpacing.sm) {
                 ForEach(CuisineType.allCases, id: \.self) { cuisine in
                     CuisineTag(
                         cuisine: cuisine,
@@ -164,10 +163,8 @@ struct CuisineSelectionSection: View {
                 }
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
-        .cornerRadius(16)
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
@@ -178,26 +175,31 @@ struct CuisineTag: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: RainforestSpacing.xs) {
                 Text(cuisine.rawValue)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.rainforest.body)
                 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.caption)
+                        .font(.rainforest.caption)
                 }
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .foregroundColor(isSelected ? .white : Color.rainforest.primaryText)
+            .padding(.horizontal, RainforestSpacing.md)
+            .padding(.vertical, RainforestSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? .blue : Color(.systemBackground))
+                    .fill(isSelected ? Color.rainforest.primaryGreen : Color.rainforest.cardBackground)
+                    .shadow(
+                        color: isSelected ? Color.rainforest.shadowColor : .clear,
+                        radius: 4,
+                        x: 0,
+                        y: 2
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? .clear : Color(.systemGray4), lineWidth: 1)
+                    .stroke(isSelected ? .clear : Color.rainforest.borderColor, lineWidth: 1)
             )
         }
     }
@@ -207,19 +209,19 @@ struct DietaryRestrictionsSection: View {
     @Binding var selectedRestrictions: Set<DietaryRestriction>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text("Dietary Restrictions")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Text("Select any dietary preferences")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.secondaryText)
             
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 12) {
+            ], spacing: RainforestSpacing.sm) {
                 ForEach(DietaryRestriction.allCases, id: \.self) { restriction in
                     DietaryTag(
                         restriction: restriction,
@@ -234,10 +236,8 @@ struct DietaryRestrictionsSection: View {
                 }
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
-        .cornerRadius(16)
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
@@ -248,26 +248,31 @@ struct DietaryTag: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: RainforestSpacing.xs) {
                 Text(restriction.rawValue)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.rainforest.body)
                 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.caption)
+                        .font(.rainforest.caption)
                 }
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .foregroundColor(isSelected ? .white : Color.rainforest.primaryText)
+            .padding(.horizontal, RainforestSpacing.md)
+            .padding(.vertical, RainforestSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? .green : Color(.systemBackground))
+                    .fill(isSelected ? Color.rainforest.secondaryGreen : Color.rainforest.cardBackground)
+                    .shadow(
+                        color: isSelected ? Color.rainforest.shadowColor : .clear,
+                        radius: 4,
+                        x: 0,
+                        y: 2
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? .clear : Color(.systemGray4), lineWidth: 1)
+                    .stroke(isSelected ? .clear : Color.rainforest.borderColor, lineWidth: 1)
             )
         }
     }
@@ -277,44 +282,42 @@ struct ServingsSection: View {
     @Binding var servings: Int
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text("Servings")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
             
             HStack {
                 Text("Number of servings:")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.rainforest.body)
+                    .foregroundColor(Color.rainforest.secondaryText)
                 
                 Spacer()
                 
-                HStack(spacing: 16) {
+                HStack(spacing: RainforestSpacing.md) {
                     Button(action: { if servings > 1 { servings -= 1 } }) {
                         Image(systemName: "minus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(servings > 1 ? .blue : .gray)
+                            .font(.rainforest.title2)
+                            .foregroundColor(servings > 1 ? Color.rainforest.secondaryGreen : Color.rainforest.secondaryText)
                     }
                     .disabled(servings <= 1)
                     
                     Text("\(servings)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.rainforest.title2)
+                        .foregroundColor(Color.rainforest.primaryText)
                         .frame(minWidth: 30)
                     
                     Button(action: { if servings < 8 { servings += 1 } }) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(servings < 8 ? .blue : .gray)
+                            .font(.rainforest.title2)
+                            .foregroundColor(servings < 8 ? Color.rainforest.primaryGreen : Color.rainforest.secondaryText)
                     }
                     .disabled(servings >= 8)
                 }
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
-        .cornerRadius(16)
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
@@ -323,25 +326,25 @@ struct MustUseIngredientsSection: View {
     @EnvironmentObject var appState: AppState
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text("Must-Use Ingredients")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Text("Select ingredients that must be included (optional)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.secondaryText)
             
             if appState.ingredients.isEmpty {
                 Text("Add ingredients to your fridge to see options here")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.rainforest.caption)
+                    .foregroundColor(Color.rainforest.secondaryText)
                     .italic()
             } else {
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
-                ], spacing: 8) {
+                ], spacing: RainforestSpacing.sm) {
                     ForEach(appState.ingredients.prefix(6), id: \.id) { ingredient in
                         IngredientTag(
                             ingredient: ingredient,
@@ -357,10 +360,8 @@ struct MustUseIngredientsSection: View {
                 }
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
-        .cornerRadius(16)
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
@@ -371,26 +372,31 @@ struct IngredientTag: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: RainforestSpacing.xs) {
                 Text(ingredient.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.rainforest.body)
                 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.caption)
+                        .font(.rainforest.caption)
                 }
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .foregroundColor(isSelected ? .white : Color.rainforest.primaryText)
+            .padding(.horizontal, RainforestSpacing.md)
+            .padding(.vertical, RainforestSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? .orange : Color(.systemBackground))
+                    .fill(isSelected ? Color.rainforest.accent : Color.rainforest.cardBackground)
+                    .shadow(
+                        color: isSelected ? Color.rainforest.shadowColor : .clear,
+                        radius: 4,
+                        x: 0,
+                        y: 2
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? .clear : Color(.systemGray4), lineWidth: 1)
+                    .stroke(isSelected ? .clear : Color.rainforest.borderColor, lineWidth: 1)
             )
         }
     }
@@ -400,23 +406,21 @@ struct SpecialRequestSection: View {
     @Binding var specialRequest: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: RainforestSpacing.md) {
             Text("Special Requests")
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.rainforest.title3)
+                .foregroundColor(Color.rainforest.primaryText)
             
             Text("Any specific requests or constraints? (optional)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.rainforest.body)
+                .foregroundColor(Color.rainforest.secondaryText)
             
             TextField("e.g., Quick dinner, Low calorie, Comfort food...", text: $specialRequest, axis: .vertical)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .rainforestTextField()
                 .lineLimit(3, reservesSpace: true)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
-        .cornerRadius(16)
+        .padding(RainforestSpacing.md)
+        .rainforestCard()
     }
 }
 
