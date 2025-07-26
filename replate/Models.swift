@@ -342,21 +342,7 @@ extension Recipe {
     }
 }
 
-extension ScannedIngredient {
-    func toIngredient() -> Ingredient {
-        let dateFormatter = ISO8601DateFormatter()
-        let expiration = estimatedExpiration.flatMap { dateFormatter.date(from: $0) }
-        
-        return Ingredient(
-            name: name,
-            quantity: quantity.amount,
-            unit: MeasurementUnit(rawValue: quantity.unit) ?? .pieces,
-            category: .other, // Default category, user can adjust
-            expirationDate: expiration,
-            isAvailable: true
-        )
-    }
-}
+
 
 // MARK: - App State
 class AppState: ObservableObject {
@@ -369,8 +355,16 @@ class AppState: ObservableObject {
     
     private let apiService = APIService.shared
     
-    func addIngredient(_ ingredient: Ingredient) {
+    func addIngredient(_ ingredient: Ingredient, syncToBackend: Bool = true) {
         ingredients.append(ingredient)
+        if syncToBackend {
+            syncIngredientsToBackend()
+        }
+    }
+    
+    // New method to add multiple ingredients efficiently
+    func addIngredients(_ newIngredients: [Ingredient]) {
+        ingredients.append(contentsOf: newIngredients)
         syncIngredientsToBackend()
     }
     
@@ -527,3 +521,5 @@ class AppState: ObservableObject {
         }
     }
 } 
+
+

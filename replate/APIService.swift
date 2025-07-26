@@ -24,13 +24,13 @@ struct ScannedIngredient: Codable {
     let name: String
     let quantity: QuantityInfo
     let estimatedExpiration: String?
-    let confidence: Double?
+    let category: String
     
-    init(name: String, quantity: QuantityInfo, estimatedExpiration: String?, confidence: Double? = nil) {
+    init(name: String, quantity: QuantityInfo, estimatedExpiration: String?, category: String) {
         self.name = name
         self.quantity = quantity
         self.estimatedExpiration = estimatedExpiration
-        self.confidence = confidence
+        self.category = category
     }
 }
 
@@ -38,6 +38,62 @@ struct QuantityInfo: Codable {
     let amount: Double
     let unit: String
 }
+
+// MARK: - ScannedIngredient Extension
+extension ScannedIngredient {
+    func toIngredient() -> Ingredient {
+        let dateFormatter = ISO8601DateFormatter()
+        let expiration = estimatedExpiration.flatMap { dateFormatter.date(from: $0) }
+        
+        // Map API category to local category enum
+        let mappedCategory = IngredientCategory(rawValue: category) ?? .other
+        
+        // Map API unit to local unit enum with fallback logic
+        let mappedUnit: MeasurementUnit
+        if let unit = MeasurementUnit(rawValue: quantity.unit) {
+            mappedUnit = unit
+        } else {
+            // Try to map common variations
+            switch quantity.unit.lowercased() {
+            case "piece", "pieces", "pcs", "pc":
+                mappedUnit = .pieces
+            case "bottle", "bottles":
+                mappedUnit = .bottles
+            case "container", "containers":
+                mappedUnit = .containers
+            case "carton", "cartons":
+                mappedUnit = .cartons
+            case "loaf", "loaves":
+                mappedUnit = .loaves
+            case "block", "blocks":
+                mappedUnit = .blocks
+            case "cup", "cups":
+                mappedUnit = .cups
+            case "liter", "liters", "l", "lt":
+                mappedUnit = .liters
+            case "lb", "lbs", "pound", "pounds":
+                mappedUnit = .lbs
+            case "kg", "kilogram", "kilograms":
+                mappedUnit = .kg
+            default:
+                mappedUnit = .pieces // Default fallback
+            }
+        }
+        
+        print("DEBUG: Converting scanned ingredient '\(name)' - category: '\(category)' -> \(mappedCategory), unit: '\(quantity.unit)' -> \(mappedUnit)")
+        
+        return Ingredient(
+            name: name,
+            quantity: quantity.amount,
+            unit: mappedUnit,
+            category: mappedCategory,
+            expirationDate: expiration,
+            isAvailable: true
+        )
+    }
+}
+
+ 
 
 struct RecipeGenerationResponse: Codable {
     let recipes: [APIRecipe]
@@ -304,40 +360,10 @@ class APIService: ObservableObject {
                 print("DEBUG: Raw API response: \(jsonString)")
             }
             
-            // Try to decode the response - backend now returns array directly
-            do {
-                let ingredients = try JSONDecoder().decode([ScannedIngredient].self, from: data)
-                return ingredients
-            } catch {
-                print("DEBUG: Failed to decode as [ScannedIngredient]: \(error)")
-                
-                // Try alternative parsing - maybe the backend returns wrapped response
-                do {
-                    let response = try JSONDecoder().decode(IngredientScanResponse.self, from: data)
-                    return response.ingredients
-                } catch {
-                    print("DEBUG: Failed to decode as IngredientScanResponse: \(error)")
-                    
-                    // Try parsing as a generic response with ingredients array
-                    do {
-                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                            print("DEBUG: Response JSON structure: \(json)")
-                            
-                            // Check if ingredients are nested in a different structure
-                            if let ingredientsArray = json["ingredients"] as? [[String: Any]] {
-                                return try parseIngredientsFromJSON(ingredientsArray)
-                            } else if let data = json["data"] as? [String: Any],
-                                      let ingredientsArray = data["ingredients"] as? [[String: Any]] {
-                                return try parseIngredientsFromJSON(ingredientsArray)
-                            }
-                        }
-                    } catch {
-                        print("DEBUG: Failed to parse as generic JSON: \(error)")
-                    }
-                    
-                    throw APIError.decodingError
-                }
-            }
+            // Decode the response - backend returns array directly matching our model exactly
+            let ingredients = try JSONDecoder().decode([ScannedIngredient].self, from: data)
+            print("DEBUG: Successfully decoded \(ingredients.count) ingredients from API")
+            return ingredients
             
         } catch {
             print("DEBUG: Network or other error: \(error)")
@@ -345,42 +371,7 @@ class APIService: ObservableObject {
         }
     }
     
-    // Helper method to parse ingredients from raw JSON
-    private func parseIngredientsFromJSON(_ ingredientsArray: [[String: Any]]) throws -> [ScannedIngredient] {
-        var ingredients: [ScannedIngredient] = []
-        
-        for ingredientData in ingredientsArray {
-            guard let name = ingredientData["name"] as? String else { continue }
-            
-            // Parse quantity - it might be nested or flat
-            let quantity: QuantityInfo
-            if let quantityData = ingredientData["quantity"] as? [String: Any] {
-                let amount = quantityData["amount"] as? Double ?? 1.0
-                let unit = quantityData["unit"] as? String ?? "pieces"
-                quantity = QuantityInfo(amount: amount, unit: unit)
-            } else {
-                // Try flat structure
-                let amount = ingredientData["amount"] as? Double ?? 1.0
-                let unit = ingredientData["unit"] as? String ?? "pieces"
-                quantity = QuantityInfo(amount: amount, unit: unit)
-            }
-            
-            let estimatedExpiration = ingredientData["estimated_expiration"] as? String ?? 
-                                     ingredientData["estimatedExpiration"] as? String
-            let confidence = ingredientData["confidence"] as? Double
-            
-            let ingredient = ScannedIngredient(
-                name: name,
-                quantity: quantity,
-                estimatedExpiration: estimatedExpiration,
-                confidence: confidence
-            )
-            
-            ingredients.append(ingredient)
-        }
-        
-        return ingredients
-    }
+
     
     func fetchIngredients() async throws -> [APIIngredient] {
         

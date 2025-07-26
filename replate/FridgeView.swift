@@ -344,9 +344,7 @@ struct IngredientConfirmationView: View {
                 }
                 
                 Button("Add to Inventory") {
-                    for ingredient in detectedIngredients {
-                        appState.addIngredient(ingredient)
-                    }
+                    appState.addIngredients(detectedIngredients)
                     onDismiss()
                 }
                 .primaryButtonStyle()

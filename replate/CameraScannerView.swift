@@ -173,4 +173,5 @@ struct CameraScannerView: View {
             self.showingConfirmation = true
         }
     }
+
 }
