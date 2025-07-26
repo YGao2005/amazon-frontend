@@ -114,26 +114,58 @@ struct RecipeImageHeader: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Recipe Image Placeholder
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [.blue.opacity(0.4), .purple.opacity(0.6)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Recipe Image
+            if let imageUrl = recipe.imageName, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 300)
+                        .clipped()
+                } placeholder: {
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue.opacity(0.4), .purple.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 300)
+                        .overlay(
+                            VStack {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.2)
+                                Text("Loading image...")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.top, 8)
+                            }
+                        )
+                }
+            } else {
+                // Fallback placeholder when no image URL
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.blue.opacity(0.4), .purple.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .frame(height: 300)
-                .overlay(
-                    VStack {
-                        Image(systemName: "photo")
-                            .font(.system(size: 50))
-                            .foregroundColor(.white.opacity(0.8))
-                        Text("Recipe Image")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                )
+                    .frame(height: 300)
+                    .overlay(
+                        VStack {
+                            Image(systemName: "photo")
+                                .font(.system(size: 50))
+                                .foregroundColor(.white.opacity(0.8))
+                            Text("Recipe Image")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    )
+            }
             
             // Close Button
             Button(action: { dismiss() }) {
