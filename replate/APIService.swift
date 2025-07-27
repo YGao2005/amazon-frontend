@@ -447,7 +447,7 @@ struct RecipeImageResponse: Codable {
 //
 class APIService: ObservableObject {
     static let shared = APIService()
-    private let baseURL = "http://localhost:8000/api/v1"
+    private let baseURL = "http://172.20.10.14:8000/api/v1"
     private let session = URLSession.shared
     
     // Development mode removed - always use real API calls

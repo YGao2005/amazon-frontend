@@ -367,11 +367,7 @@ struct MustUseIngredientsSection: View {
                     .font(.rainforest.bodyMedium)
                     .foregroundColor(Color.rainforest.primaryText)
                 
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: RainforestSpacing.sm) {
+                VStack(spacing: RainforestSpacing.sm) {
                     ForEach(Array(mustUseIngredients).sorted(), id: \.self) { ingredient in
                         SelectedIngredientTag(
                             ingredientName: ingredient
@@ -389,11 +385,7 @@ struct MustUseIngredientsSection: View {
                     .foregroundColor(Color.rainforest.primaryText)
                     .padding(.top, RainforestSpacing.sm)
                 
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: RainforestSpacing.sm) {
+                VStack(spacing: RainforestSpacing.sm) {
                     ForEach(appState.ingredients, id: \.id) { ingredient in
                         if !mustUseIngredients.contains(ingredient.name) {
                             AvailableIngredientTag(
@@ -436,12 +428,15 @@ struct SelectedIngredientTag: View {
                     .font(.rainforest.body)
                     .foregroundColor(.white)
                 
+                Spacer()
+                
                 Image(systemName: "xmark.circle.fill")
                     .font(.rainforest.caption)
                     .foregroundColor(.white.opacity(0.8))
             }
             .padding(.horizontal, RainforestSpacing.md)
             .padding(.vertical, RainforestSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.rainforest.accent)
@@ -466,12 +461,15 @@ struct AvailableIngredientTag: View {
                 Text(ingredient.name)
                     .font(.rainforest.body)
                 
+                Spacer()
+                
                 Image(systemName: "plus.circle")
                     .font(.rainforest.caption)
             }
             .foregroundColor(Color.rainforest.primaryText)
             .padding(.horizontal, RainforestSpacing.md)
             .padding(.vertical, RainforestSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.rainforest.cardBackground)
